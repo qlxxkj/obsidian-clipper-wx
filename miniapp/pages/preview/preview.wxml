@@ -1,0 +1,18 @@
+<view class="page">
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+
+    <view wx:if="{{meta}}" class="meta">
+        <view class="meta__title">{{meta.title}}</view>
+        <view class="meta__sub">{{meta.site || meta.domain}}{{meta.published ? ' · ' + meta.published : ''}}{{meta.wordCount ? ' · ' + meta.wordCount + ' 词' : ''}}</view>
+    </view>
+
+    <scroll-view class="md" scroll-y>
+        <text user-select class="md__text" selectable>{{markdown}}</text>
+    </scroll-view>
+
+    <view class="bar">
+        <button class="bar__btn" bindtap="copy">复制 Markdown</button>
+        <button class="bar__btn" loading="{{loading}}" bindtap="saveFile">保存到本地</button>
+        <button class="bar__btn bar__btn--ghost" open-type="share">转发</button>
+    </view>
+</view>

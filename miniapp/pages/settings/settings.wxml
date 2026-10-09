@@ -1,0 +1,33 @@
+<view class="page">
+    <view class="block">
+        <view class="block__label">后端地址 (HTTPS)</view>
+        <input
+            class="input"
+            placeholder="https://clipper.yourdomain.com"
+            value="{{backend}}"
+            bindinput="onBackend"
+            confirm-type="done"
+        />
+        <view class="help">
+            部署 clipper-backend 后填它的 HTTPS 域名。该域名必须在小程序后台「开发设置 → 服务器域名 → request 合法域名」里加白。
+        </view>
+    </view>
+
+    <view class="block">
+        <view class="block__label">Token（可选）</view>
+        <input
+            class="input"
+            placeholder="若后端设置了 CLIPPER_TOKEN 则必填"
+            value="{{token}}"
+            bindinput="onToken"
+            password
+        />
+    </view>
+
+    <view class="actions">
+        <button class="btn" bindtap="save">保存</button>
+        <button class="btn btn--ghost" bindtap="test">测试连接</button>
+    </view>
+
+    <view wx:if="{{saved}}" class="ok">配置已保存</view>
+</view>

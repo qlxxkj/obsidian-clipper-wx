@@ -1,0 +1,50 @@
+.page {
+    padding: 24rpx 32rpx calc(40rpx + env(safe-area-inset-bottom));
+}
+
+.block {
+    margin-top: 32rpx;
+}
+.block__label {
+    font-size: 24rpx;
+    color: #8a90a0;
+    margin-bottom: 12rpx;
+}
+.input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #1a1d24;
+    border: 1rpx solid #2a2f3a;
+    border-radius: 16rpx;
+    padding: 20rpx 24rpx;
+    color: #e8ebf2;
+    font-size: 30rpx;
+}
+.help {
+    margin-top: 12rpx;
+    color: #5a6070;
+    font-size: 22rpx;
+    line-height: 1.5;
+}
+
+.actions {
+    display: flex;
+    gap: 16rpx;
+    margin-top: 40rpx;
+}
+.btn {
+    flex: 1;
+    background: #3a6cff;
+    color: #fff;
+    font-size: 30rpx;
+    border-radius: 16rpx;
+}
+.btn--ghost {
+    background: #2a2f3a;
+}
+
+.ok {
+    margin-top: 24rpx;
+    color: #4cd78b;
+    font-size: 26rpx;
+}

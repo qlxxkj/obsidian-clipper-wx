@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/preview/preview",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "navigationBarTitleText": "网页剪藏",
+    "navigationBarBackgroundColor": "#0f1115",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0f1115"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
