@@ -1,0 +1,20 @@
+{
+  "name": "wechat-inbox-sync",
+  "version": "0.1.0",
+  "description": "Obsidian plugin: pull pending clippings from the WeChat inbox Worker and write clean Markdown into the vault.",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production"
+  },
+  "dependencies": {
+    "defuddle": "^0.19.4",
+    "linkedom": "^0.18.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.20.0",
+    "obsidian": "latest",
+    "typescript": "^5.0.0"
+  }
+}

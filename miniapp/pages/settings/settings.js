@@ -1,64 +1,69 @@
 Page({
     data: {
-        backend: "",
-        token: "",
+        inbox: "",
+        code: "",
         saved: false,
     },
 
     onShow() {
         this.setData({
-            backend: wx.getStorageSync("clipper_backend") || "",
-            token: wx.getStorageSync("clipper_token") || "",
+            inbox: wx.getStorageSync("clipper_inbox") || "",
+            code: wx.getStorageSync("clipper_code") || "",
             saved: false,
         });
     },
 
-    onBackend(e) {
-        this.setData({ backend: e.detail.value, saved: false });
+    onInbox(e) {
+        this.setData({ inbox: e.detail.value, saved: false });
     },
-    onToken(e) {
-        this.setData({ token: e.detail.value, saved: false });
+    onCode(e) {
+        this.setData({ code: e.detail.value.replace(/\D/g, "").slice(0, 6), saved: false });
     },
 
     save() {
-        const { backend, token } = this.data;
-        if (backend && !/^https?:\/\//i.test(backend.trim())) {
-            wx.showToast({ title: "后端地址需以 http(s):// 开头", icon: "none" });
+        const { inbox, code } = this.data;
+        if (inbox && !/^https?:\/\//i.test(inbox.trim())) {
+            wx.showToast({ title: "收件箱地址需以 http(s):// 开头", icon: "none" });
             return;
         }
-        wx.setStorageSync("clipper_backend", backend.trim().replace(/\/+$/, ""));
-        wx.setStorageSync("clipper_token", token.trim());
+        if (!/^\d{6}$/.test(code)) {
+            wx.showToast({ title: "设备码必须是 6 位数字", icon: "none" });
+            return;
+        }
+        const cleaned = inbox.trim().replace(/\/+$/, "");
+        wx.setStorageSync("clipper_inbox", cleaned);
+        wx.setStorageSync("clipper_code", code);
         const app = getApp();
-        app.globalData.backend = backend.trim().replace(/\/+$/, "");
-        app.globalData.token = token.trim();
+        app.globalData.inbox = cleaned;
+        app.globalData.code = code;
         this.setData({ saved: true });
         wx.showToast({ title: "已保存", icon: "success" });
     },
 
     test() {
-        const { backend } = this.data;
-        if (!backend) {
-            wx.showToast({ title: "请先填写后端地址", icon: "none" });
+        const { inbox, code } = this.data;
+        if (!inbox) {
+            wx.showToast({ title: "请先填写收件箱地址", icon: "none" });
             return;
         }
-        const token = this.data.token.trim();
-        const url = backend.replace(/\/+$/, "") + "/health";
+        if (!/^\d{6}$/.test(code)) {
+            wx.showToast({ title: "请先填写 6 位设备码", icon: "none" });
+            return;
+        }
+        // GET /v1/pending?code= 只用来探连通性(空队列也返回 ok)。
         wx.request({
-            url,
+            url: `${inbox.replace(/\/+$/, "")}/v1/pending?code=${code}`,
             method: "GET",
-            header: token ? { "x-clipper-token": token } : {},
             timeout: 10000,
             success: (res) => {
-                wx.showToast({
-                    title: res.statusCode === 200 ? "连接成功" : `HTTP ${res.statusCode}`,
-                    icon: "success",
-                });
+                const ok = res.data && res.data.ok === true;
+                wx.showToast({ title: ok ? "连接成功" : `HTTP ${res.statusCode}`, icon: ok ? "success" : "none" });
             },
             fail: (err) => {
                 wx.showModal({
                     title: "连接失败",
                     content:
-                        `${err.errMsg || "网络错误"}\n\n发布前请确认该域名已在小程序后台「request 合法域名」中加白（HTTPS）。开发阶段可在 devtools 勾选「不校验合法域名」使用本地地址。`,
+                        `${err.errMsg || "网络错误"}\n\n发布前请确认该 Worker 域已在小程序后台「request 合法域名」加白(HTTPS)。开发期可在 devtools 勾「不校验合法域名」。`,
                     showCancel: false,
                 });
             },

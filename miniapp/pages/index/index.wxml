@@ -1,7 +1,7 @@
 <view class="page">
     <view class="seg">
         <view class="seg__item {{mode === 'url' ? 'seg__item--active' : ''}}" data-mode="url" bindtap="setMode">网页链接</view>
-        <view class="seg__item {{mode === 'pure' ? 'seg__item--active' : ''}}" data-mode="pure" bindtap="setMode">纯图文</view>
+        <view class="seg__item {{mode === 'text' ? 'seg__item--active' : ''}}" data-mode="text" bindtap="setMode">纯图文</view>
     </view>
 
     <view wx:if="{{mode === 'url'}}" class="block">
@@ -17,28 +17,30 @@
 
     <view wx:else class="block">
         <view class="block__label">标题（可选）</view>
-        <input class="input" placeholder="笔记标题" value="{{pureTitle}}" bindinput="onPureTitle" />
+        <input class="input" placeholder="笔记标题" value="{{textTitle}}" bindinput="onTextTitle" />
         <view class="block__label block__label--mt">内容（支持 Markdown / 富文本）</view>
         <textarea
             class="textarea"
             placeholder="# 标题&#10;正文内容…"
-            value="{{pureContent}}"
-            bindinput="onPureContent"
+            value="{{textContent}}"
+            bindinput="onTextContent"
             auto-height
         />
     </view>
 
     <view class="block">
-        <view class="block__label">标签（逗号分隔，可选）</view>
-        <input class="input" placeholder="clippings, 笔记" value="{{tags}}" bindinput="onTags" />
+        <view class="block__label">标签（可选）</view>
+        <input class="input" placeholder="clippings" value="{{tag}}" bindinput="onTag" />
     </view>
 
     <button class="submit" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">
-        {{submitting ? '处理中…' : '剪藏'}}
+        {{submitting ? '投递中…' : '投到收件箱'}}
     </button>
 
     <view wx:if="{{notice}}" class="notice">{{notice}}</view>
     <view wx:if="{{error}}" class="error">{{error}}</view>
 
-    <view class="hint">转换由后端完成：小程序只负责输入与预览。后端地址在「设置」里配置。</view>
+    <view class="hint">
+        转换由桌面端 Obsidian 插件完成。请先在「设置」里填好收件箱 Worker 地址 + 6 位设备码。
+    </view>
 </view>

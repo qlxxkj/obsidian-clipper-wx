@@ -1,0 +1,15 @@
+name = "wechat-inbox"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+
+# KV 收件箱队列
+[[kv_namespaces]]
+binding = "INBOX"
+id = "<YOUR_KV_ID>"          # wrangler kv:namespace create INBOX 之后填入
+
+# 管理接口 token(可选,防 /v1/devices 被枚举)。部署时:
+# wrangler secret put ADMIN
+[vars]
+# ADMIN = ""
+
+# 本地开发:wrangler dev

@@ -1,0 +1,10 @@
+{
+  "id": "wechat-inbox-sync",
+  "name": "WeChat Inbox Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "从微信小程序收件箱拉取暂存的链接/图文,本地抓取并转成 Markdown 存入知识库(去重)。",
+  "author": "obsidian-clipper-wx",
+  "authorUrl": "https://github.com/example/obsidian-clipper-wx",
+  "isDesktopOnly": false
+}

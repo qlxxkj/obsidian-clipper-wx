@@ -1,15 +1,16 @@
-const { clipUrl, clipPure } = require("../../utils/api.js");
+const { claim } = require("../../utils/api.js");
 
 Page({
     data: {
-        mode: "url", // "url" | "pure"
+        mode: "url", // "url" | "text"
         url: "",
-        pureTitle: "",
-        pureContent: "",
-        tags: "",
+        textTitle: "",
+        textContent: "",
+        tag: "clippings",
         submitting: false,
         error: "",
         notice: "",
+        lastId: "",
     },
 
     setMode(e) {
@@ -19,61 +20,58 @@ Page({
     onUrlInput(e) {
         this.setData({ url: e.detail.value, error: "" });
     },
-    onPureTitle(e) {
-        this.setData({ pureTitle: e.detail.value });
+    onTextTitle(e) {
+        this.setData({ textTitle: e.detail.value });
     },
-    onPureContent(e) {
-        this.setData({ pureContent: e.detail.value });
+    onTextContent(e) {
+        this.setData({ textContent: e.detail.value });
     },
-    onTags(e) {
-        this.setData({ tags: e.detail.value });
+    onTag(e) {
+        this.setData({ tag: e.detail.value });
     },
 
-    parseTags() {
-        return this.data.tags
-            .split(/[,，]/)
-            .map((s) => s.trim())
-            .filter(Boolean);
+    parseTag() {
+        const first = (this.data.tag.trim() || "clippings").split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+        return first[0] || "clippings";
     },
 
     async submit() {
-        const { mode, url, pureTitle, pureContent, submitting } = this.data;
+        const { mode, url, textContent, submitting } = this.data;
         if (submitting) return;
 
         if (mode === "url" && !/^https?:\/\//i.test(url.trim())) {
             this.setData({ error: "请输入完整的 http(s) 链接" });
             return;
         }
-        if (mode === "pure" && !pureContent.trim()) {
+        if (mode === "text" && !textContent.trim()) {
             this.setData({ error: "请输入要剪藏的图文内容" });
             return;
         }
 
-        this.setData({ submitting: true, error: "", notice: mode === "url" ? "正在抓取并转换…" : "正在生成笔记…" });
-        const tags = this.parseTags();
+        const payload =
+            mode === "url"
+                ? { kind: "url", url: url.trim(), tag: this.parseTag() }
+                : {
+                      kind: "text",
+                      url: url.trim() || undefined,
+                      title: this.data.textTitle || undefined,
+                      content: textContent,
+                      tag: this.parseTag(),
+                  };
+
+        this.setData({ submitting: true, error: "", notice: "正在投到收件箱…" });
         try {
-            let result;
-            if (mode === "url") {
-                result = await clipUrl({ url: url.trim(), tags });
-            } else {
-                result = await clipPure({
-                    content: pureContent,
-                    title: pureTitle || undefined,
-                    url: url || undefined,
-                    tags,
-                });
-            }
-            wx.setStorageSync("clipper_last", {
-                markdown: result.markdown,
-                meta: result.meta || null,
-                content: result.content,
-                at: Date.now(),
+            const res = await claim(payload);
+            const id = res && res.id ? String(res.id).slice(0, 8) : "";
+            const deduped = res && res.deduped ? "（已存在，跳过）" : "";
+            this.setData({
+                submitting: false,
+                lastId: id,
+                notice: `已投收件箱${id ? " · " + id : ""}${deduped}。桌面端 Obsidian 插件会拉取并写入。`,
             });
-            this.setData({ submitting: false, notice: "转换完成" });
-            wx.navigateTo({ url: "/pages/preview/preview" });
         } catch (error) {
             this.setData({ submitting: false, notice: "" });
-            this.setData({ error: error.message || "转换失败" });
+            this.setData({ error: error.message || "投递失败" });
         }
     },
 });

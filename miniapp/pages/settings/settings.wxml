@@ -1,27 +1,31 @@
 <view class="page">
     <view class="block">
-        <view class="block__label">后端地址 (HTTPS)</view>
+        <view class="block__label">收件箱 Worker 地址 (HTTPS)</view>
         <input
             class="input"
-            placeholder="https://clipper.yourdomain.com"
-            value="{{backend}}"
-            bindinput="onBackend"
+            placeholder="https://wechat-inbox.your-account.workers.dev"
+            value="{{inbox}}"
+            bindinput="onInbox"
             confirm-type="done"
         />
         <view class="help">
-            部署 clipper-backend 后填它的 HTTPS 域名。该域名必须在小程序后台「开发设置 → 服务器域名 → request 合法域名」里加白。
+            Cloudflare Worker 部署地址。该域必须在小程序后台「request 合法域名」加白(HTTPS)。
         </view>
     </view>
 
     <view class="block">
-        <view class="block__label">Token（可选）</view>
+        <view class="block__label">设备码 (6 位数字)</view>
         <input
             class="input"
-            placeholder="若后端设置了 CLIPPER_TOKEN 则必填"
-            value="{{token}}"
-            bindinput="onToken"
-            password
+            placeholder="123456"
+            value="{{code}}"
+            bindinput="onCode"
+            maxlength="6"
+            type="number"
         />
+        <view class="help">
+            在 Obsidian 插件「设置 → 生成」里拿到的 6 位码。两边填同一个码即绑定这台设备。
+        </view>
     </view>
 
     <view class="actions">

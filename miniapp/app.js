@@ -1,12 +1,10 @@
 App({
     globalData: {
-        backend: "",
-        token: "",
+        inbox: "",
+        code: "",
     },
     onLaunch() {
-        const backend = wx.getStorageSync("clipper_backend") || "";
-        const token = wx.getStorageSync("clipper_token") || "";
-        this.globalData.backend = backend;
-        this.globalData.token = token;
+        this.globalData.inbox = wx.getStorageSync("clipper_inbox") || "";
+        this.globalData.code = wx.getStorageSync("clipper_code") || "";
     },
 });
