@@ -8,7 +8,20 @@ import {
     TFile,
     requestUrl,
 } from "obsidian";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { convertText, convertUrl, type ConvertResult } from "./convert";
+import {
+    cleanupDir,
+    detectMediaTooling,
+    hasFfmpeg,
+    hasWhisper,
+    hasYtDlp,
+    type MediaTooling,
+} from "./media";
+import { detectBrowsers, BROWSERS, type BrowserKind } from "./browser";
+import { processVideo, hostForCookie } from "./video";
 
 // ---- 收件箱项(与 Cloudflare worker 的 InboxItem 对齐) -----------------
 interface InboxItem {
@@ -28,6 +41,10 @@ interface Settings {
     intervalMin: number;
     folder: string; // 知识库内写入目录
     confirm: boolean; // 写库前弹确认
+    // 视频管线
+    mediaFolder: string; // 视频附件目录(相对 vault 根)
+    saveVideo: boolean; // 是否下载视频文件本身
+    videoCookieBrowser: BrowserKind | "none"; // 读登录态 cookie 的浏览器
 }
 
 const DEFAULTS: Settings = {
@@ -36,6 +53,9 @@ const DEFAULTS: Settings = {
     intervalMin: 5,
     folder: "Clippings",
     confirm: false,
+    mediaFolder: "Attachments",
+    saveVideo: true,
+    videoCookieBrowser: "none",
 };
 
 export default class WeChatInboxSyncPlugin extends Plugin {
@@ -185,6 +205,9 @@ export default class WeChatInboxSyncPlugin extends Plugin {
         if (item.kind === "text" && item.content) {
             // 纯图文:不联网
             markdown = convertText({ title: item.title, content: item.content, url: item.url, tags: [item.tag || "clippings"] });
+        } else if (item.kind === "video" && item.url) {
+            // 视频:下载 + 抽字幕(或本地转写),视频附件 + MD 笔记内联字幕
+            return this.writeVideoItem(item, key, manual);
         } else if (item.url) {
             // 网页:本地抓取 + Defuddle
             const r: ConvertResult = await convertUrl(item.url, [item.tag || "clippings"]);
@@ -214,6 +237,112 @@ export default class WeChatInboxSyncPlugin extends Plugin {
         this.seenCache.set(key, Date.now());
         if (item.url) this.seenCache.set(`u:${item.url}`, Date.now());
         return true;
+    }
+
+    // ---- 视频管线 -------------------------------------------------------
+
+    private getMediaTooling(): MediaTooling {
+        return detectMediaTooling();
+    }
+
+    private async writeVideoItem(
+        item: InboxItem,
+        key: string,
+        manual: boolean,
+    ): Promise<boolean> {
+        const url = item.url!;
+        const t = this.getMediaTooling();
+        if (!hasYtDlp(t)) {
+            new Notice("WeChat Inbox: 未装 yt-dlp,无法处理视频");
+            return false;
+        }
+
+        const tmpDir = path.join(os.tmpdir(), `wx-video-${item.id}-${Date.now()}`);
+        try {
+            const res = await processVideo(t, url, tmpDir, {
+                cookieBrowser: this.settings.videoCookieBrowser,
+                saveVideo: this.settings.saveVideo,
+            });
+            if (!res.ok) {
+                new Notice(`WeChat Inbox: 视频处理失败:${res.error}`);
+                return false;
+            }
+
+            const mediaFolder = this.ensureFolder(this.settings.mediaFolder || "Attachments");
+            const base = item.title ? slugify(item.title) : this.basenameFor(url);
+            const host = hostForCookie(url);
+            const tags = [...new Set([item.tag || "clippings", host, "video"].filter(Boolean))];
+
+            // 视频附件
+            let videoLink = "";
+            if (res.videoPath && this.settings.saveVideo) {
+                const ext = path.extname(res.videoPath) || ".mp4";
+                const vRel = `${mediaFolder}/${base}${ext}`;
+                const buf = fs.readFileSync(res.videoPath);
+                // fs.readFileSync 的 Buffer 可能来自共享池;.buffer 是 ArrayBufferLike,
+                // 用 Uint8Array 拷贝出一个独立 ArrayBuffer 再喂 createBinary。
+                const data = new ArrayBuffer(buf.length);
+                new Uint8Array(data).set(buf);
+                await this.app.vault.createBinary(vRel, data);
+                videoLink = `![[${base}${ext}]]`;
+            }
+
+            // 字幕:内联正文(可检索/可读);SRT 另存附件(可选,whisper 产物)
+            let srtLink = "";
+            if (res.subtitles && res.transcriptSource === "whisper") {
+                const sRel = `${mediaFolder}/${base}.srt`;
+                await this.app.vault.create(sRel, res.subtitles);
+                srtLink = `[[${base}.srt]]`;
+            }
+
+            // 组装笔记
+            const s = (v: string) => JSON.stringify(v);
+            const fmLines: string[] = [];
+            if (item.title) fmLines.push(`title: ${s(item.title)}`);
+            fmLines.push(`source: ${s(url)}`);
+            fmLines.push(`source_type: "video"`);
+            if (host) fmLines.push(`platform: ${s(host)}`);
+            if (res.transcriptSource) fmLines.push(`transcript: ${s(res.transcriptSource)}`);
+            fmLines.push(`created: ${s(new Date().toISOString().slice(0, 10))}`);
+            fmLines.push(`tags:\n  - ${tags.map(s).join("\n  - ")}`);
+            const fm = `---\n${fmLines.join("\n")}\n---\n\n`;
+
+            let body = `# ${item.title || base}\n`;
+            if (videoLink) body += `\n${videoLink}\n`;
+            if (res.subtitles) {
+                const label = res.transcriptSource === "whisper" ? "本地转写" : "平台 CC 字幕";
+                body += `\n## 字幕(${label})\n\n${res.subtitles}\n`;
+            }
+            if (srtLink) body += `\n原始 SRT: ${srtLink}\n`;
+            const markdown = fm + body;
+
+            const full = `${this.settings.folder}/${base}.md`;
+            if (this.vaultFile(full)) return false; // 不覆盖
+
+            if (this.settings.confirm && manual) {
+                const ok = await new Promise<boolean>((resolve) => {
+                    const m = new ConfirmModal(this.app, `写入「${full}」(含视频附件)?`, () => resolve(true), () => resolve(false));
+                    m.open();
+                });
+                if (!ok) return false;
+            }
+            await this.app.vault.create(full, markdown);
+            this.seenCache.set(key, Date.now());
+            this.seenCache.set(`u:${url}`, Date.now());
+            new Notice(
+                `WeChat Inbox: 视频已写入「${full}」` +
+                    (res.videoPath && this.settings.saveVideo ? "(含视频附件)" : "") +
+                    (res.subtitles ? `(字幕:${res.transcriptSource})` : ""),
+            );
+            return true;
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.error("[wechat-inbox] video", msg);
+            new Notice(`WeChat Inbox: 视频写入失败 (${msg})`);
+            return false;
+        } finally {
+            cleanupDir(tmpDir);
+        }
     }
 
     private vaultFile(path: string): TFile | null {
@@ -338,6 +467,59 @@ class WeChatInboxSettingsTab extends PluginSettingTab {
                     this.plugin.saveSettings();
                 }),
             );
+
+        // ---- 视频管线 ---------------------------------------------------
+        containerEl.createEl("h3", { text: "视频管线" });
+
+        new Setting(containerEl)
+            .setName("视频附件目录")
+            .setDesc("相对知识库根,下载的视频/SRT 写到哪,默认 Attachments")
+            .addText((t) =>
+                t.setValue(s.mediaFolder).onChange((v) => {
+                    s.mediaFolder = v.trim();
+                    this.plugin.saveSettings();
+                }),
+            );
+
+        new Setting(containerEl)
+            .setName("下载视频文件")
+            .setDesc("关闭则只抓字幕/转写文本,不落视频附件(省空间)")
+            .addToggle((tg) =>
+                tg.setValue(s.saveVideo).onChange((v) => {
+                    s.saveVideo = v;
+                    this.plugin.saveSettings();
+                }),
+            );
+
+        new Setting(containerEl)
+            .setName("读登录态 cookie 的浏览器")
+            .setDesc("none=不用(公开视频);选浏览器则自动读其登录态,免手贴 SESSDATA")
+            .addDropdown((d) => {
+                d.addOption("none", "none(不读 cookie)");
+                const found = detectBrowsers();
+                for (const b of BROWSERS) {
+                    d.addOption(b.id, `${b.label}${found.includes(b.id) ? " ✓已探测" : ""}`);
+                }
+                d.setValue(s.videoCookieBrowser);
+                d.onChange((v) => {
+                    s.videoCookieBrowser = v as BrowserKind | "none";
+                    this.plugin.saveSettings();
+                });
+            });
+
+        new Setting(containerEl).addButton((b) =>
+            b.setButtonText("检查视频工具").setTooltip("探测本机 yt-dlp / ffmpeg / whisper / 浏览器").onClick(() => {
+                const t = detectMediaTooling();
+                const brows = detectBrowsers();
+                const lines = [
+                    `yt-dlp: ${hasYtDlp(t) ? t.ytDlp : "✗ 未装"}`,
+                    `ffmpeg: ${hasFfmpeg(t) ? t.ffmpeg : "✗ 未装(视频下载需要)"}`,
+                    `whisper.cpp: ${hasWhisper(t) ? `${t.whisperCli} (模型 ${t.whisperModel})` : "可选,未装(仅 CC 字幕无需)"}`,
+                    `浏览器 cookie: ${brows.length ? brows.join(", ") : "未探测到 cookie 文件"}`,
+                ];
+                new Notice(`WeChat Inbox 视频工具\n${lines.join("\n")}`, 10000);
+            }),
+        );
 
         new Setting(containerEl).addButton((b) =>
             b.setButtonText("立即同步").setTooltip("现在拉取并写入收件箱内容").onClick(() => {

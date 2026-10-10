@@ -4,6 +4,13 @@
         <view class="seg__item {{mode === 'text' ? 'seg__item--active' : ''}}" data-mode="text" bindtap="setMode">纯图文</view>
     </view>
 
+    <view class="block block--clip">
+        <view class="block__label">剪贴板</view>
+        <button class="paste" bindtap="onPaste">粘贴剪贴板</button>
+        <view wx:if="{{autoFilled && url}}" class="hint hint--ok">已自动读取剪贴板并填入链接</view>
+        <view wx:if="{{clipboardHint}}" class="hint hint--ok">{{clipboardHint}}</view>
+    </view>
+
     <view wx:if="{{mode === 'url'}}" class="block">
         <view class="block__label">链接</view>
         <input
@@ -13,6 +20,7 @@
             bindinput="onUrlInput"
             confirm-type="done"
         />
+        <view class="hint">视频平台(B站/抖音/快手/视频号/YouTube)链接会自动按视频处理,桌面插件本地下载+抽字幕。</view>
     </view>
 
     <view wx:else class="block">
@@ -41,6 +49,6 @@
     <view wx:if="{{error}}" class="error">{{error}}</view>
 
     <view class="hint">
-        转换由桌面端 Obsidian 插件完成。请先在「设置」里填好收件箱 Worker 地址 + 6 位设备码。
+        进页面会自动读手机剪贴板;转换/下载由桌面端 Obsidian 插件完成。先在「设置」填好收件箱 Worker 地址 + 6 位设备码。
     </view>
 </view>

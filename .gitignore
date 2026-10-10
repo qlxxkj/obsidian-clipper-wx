@@ -1,6 +1,23 @@
+# Node
 node_modules/
+
+# Obsidian 插件构建产物(本地 npm run build 生成,只推源码)
+obsidian-plugin/main.js
+obsidian-plugin/*.map
+
+# Cloudflare 密钥 / 本地环境变量
 .env*
 !.env.example
+.wrangler/
+
+# 临时 cookie / 媒体产物(运行时生成)
+wx-inbox-cookies-*.txt
+wx-*.db
+
+# 微信开发者工具
+miniapp/miniprogram_npm/
+
+# 杂项
 *.log
 .DS_Store
 .idea

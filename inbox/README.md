@@ -6,7 +6,7 @@
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| POST | `/v1/claim?code=xxxxxx` | 小程序投递。body `{ url?, kind?, content?, title?, tag? }`。返回 `{ ok, id?, deduped?, queued? }` |
+| POST | `/v1/claim?code=xxxxxx` | 小程序投递。body `{ url?, kind?, content?, title?, tag? }`(`kind` 取 `text`/`video`,视频由桌面插件本地下载+抽字幕)。返回 `{ ok, id?, deduped?, queued? }` |
 | GET | `/v1/pending?code=xxxxxx` | 桌面插件拉待办。返回 `{ ok, items: InboxItem[] }` |
 | POST | `/v1/ack?code=xxxxxx` | 桌面插件回写已同步。body `{ ids, url?, content? }`。返回 `{ ok, removed, remaining }` |
 | GET | `/v1/devices?admin=<token>` | 管理:列出绑定设备(需 `wrangler secret put ADMIN`) |

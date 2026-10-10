@@ -24,6 +24,13 @@
 .block {
     margin-top: 32rpx;
 }
+.block--clip {
+    margin-top: 28rpx;
+    background: #141821;
+    border: 1rpx solid #232a38;
+    border-radius: 16rpx;
+    padding: 20rpx;
+}
 .block__label {
     font-size: 24rpx;
     color: #8a90a0;
@@ -31,6 +38,18 @@
 }
 .block__label--mt {
     margin-top: 24rpx;
+}
+
+.paste {
+    width: 100%;
+    background: #232a38;
+    color: #cfd4e0;
+    font-size: 28rpx;
+    border-radius: 12rpx;
+    line-height: 2.2;
+}
+.paste::after {
+    border: none;
 }
 
 .input,
@@ -74,4 +93,7 @@
     color: #5a6070;
     font-size: 22rpx;
     line-height: 1.5;
+}
+.hint--ok {
+    color: #4cd78b;
 }
