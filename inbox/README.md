@@ -1,6 +1,6 @@
 # inbox(Cloudflare Worker + KV 收件箱)
 
-极简、无业务逻辑的"邮筒"。小程序往里投待办,桌面 Obsidian 插件从里拉、写完回 ACK。它**不抓取、不转 MD**——那些在 `../obsidian-plugin` 本地做。
+极简、无业务逻辑的"邮筒"。小程序往里投待办,桌面 Obsidian 插件从里拉、写完回 ACK。它**不抓取、不转 MD**——那些在配套的 [obsidian-wechat-clipper](https://github.com/qlxxkj/obsidian-wechat-clipper) 插件仓库本地做。
 
 ## 端点
 
