@@ -46,7 +46,7 @@ npx wrangler deploy                             # 得到 https://...workers.dev
 # 3) 桌面插件(另一仓库 obsidian-wechat-clipper)
 git clone https://github.com/qlxxkj/obsidian-wechat-clipper
 cd obsidian-wechat-clipper && npm install && npm run build
-# 把 main.js + manifest.json 拷进 <你的vault>/.obsidian/plugins/wechat-inbox-sync/
+# 把 main.js + manifest.json 拷进 <你的vault>/.obsidian/plugins/qlx-wx-inbox-sync/
 # Obsidian 设置里填 收件箱地址 + 点「生成」拿 6 位码(与小程序同一个)
 ```
 
